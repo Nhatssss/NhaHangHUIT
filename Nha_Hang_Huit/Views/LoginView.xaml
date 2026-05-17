@@ -1,0 +1,61 @@
+<Window x:Class="Nha_Hang_Huit.Views.LoginView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Đăng Nhập - Nhà Hàng HUIT"
+        WindowStartupLocation="CenterScreen"
+        WindowStyle="SingleBorderWindow"
+        ResizeMode="NoResize"
+        Width="400" Height="320">
+    <Grid Margin="30">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" Text="NHA HANG HUIT" FontSize="24" FontWeight="Bold"
+                   HorizontalAlignment="Center" Foreground="#2E7D32" Margin="0,0,0,20"/>
+
+        <StackPanel Grid.Row="1" Margin="0,0,0,10">
+            <TextBlock Text="Tên đăng nhập:" FontWeight="SemiBold" Margin="0,0,0,5"/>
+            <TextBox Text="{Binding TenDangNhap, UpdateSourceTrigger=PropertyChanged}"
+                     Height="32" FontSize="14" Padding="5,2"/>
+        </StackPanel>
+
+        <StackPanel Grid.Row="2" Margin="0,0,0,10">
+            <TextBlock Text="Mật khẩu:" FontWeight="SemiBold" Margin="0,0,0,5"/>
+            <PasswordBox x:Name="txtMatKhau" Height="32" FontSize="14" Padding="5,2" PasswordChanged="TxtMatKhau_PasswordChanged"/>
+        </StackPanel>
+
+        <Button Grid.Row="3" Content="ĐĂNG NHẬP" Height="40" FontSize="16"
+                FontWeight="Bold" Background="#2E7D32" Foreground="White"
+                Command="{Binding DangNhapCommand}">
+            <Button.Style>
+                <Style TargetType="Button">
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="Button">
+                                <Border Background="{TemplateBinding Background}"
+                                        CornerRadius="5" Padding="10,5">
+                                    <ContentPresenter HorizontalAlignment="Center"/>
+                                </Border>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+            </Button.Style>
+        </Button>
+
+        <TextBlock Grid.Row="4" Text="{Binding ThongBao}"
+                   Visibility="{Binding CoThongBao, Converter={StaticResource BoolToVis}}"
+                   Foreground="Red" HorizontalAlignment="Center"
+                   Margin="0,10,0,0"/>
+
+        <TextBlock Grid.Row="5" Text="Mặc định: admin / 123456"
+                   Foreground="Gray" FontStyle="Italic"
+                   HorizontalAlignment="Center" Margin="0,15,0,0"/>
+    </Grid>
+</Window>
