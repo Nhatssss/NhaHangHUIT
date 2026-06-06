@@ -23,6 +23,10 @@ namespace Nha_Hang_Huit.Services
         /// <summary>Discount percentage stored as C# decimal 0-1 range (e.g., 0.05 = 5%)</summary>
         public decimal TiLeGiamGiaHienTai { get; set; }
 
+        // Thong tin ban hien tai
+        public int? SoBanHienTai { get; set; }
+        public string TenBanHienTai { get; set; }
+
         // Event thong bao gio hang thay doi
         public event EventHandler GioHangChanged;
 
@@ -79,6 +83,8 @@ namespace Nha_Hang_Huit.Services
             MaKhachHangHienTai = null;
             TienGiamGiaHienTai = 0;
             TiLeGiamGiaHienTai = 0;
+            SoBanHienTai = null;
+            TenBanHienTai = null;
             NotifyGioHangChanged();
         }
 
@@ -95,7 +101,7 @@ namespace Nha_Hang_Huit.Services
         /// <summary>
         /// Tao hoa don trong DB va tra ve MaHoaDon
         /// </summary>
-        public int? TaoHoaDon(HoaDonService hoaDonService)
+        public int? TaoHoaDon(HoaDonService hoaDonService, BanAnService banAnService = null)
         {
             if (GioHang.Count == 0) return null;
 
@@ -108,7 +114,7 @@ namespace Nha_Hang_Huit.Services
                 MaCa = maCa.Value
             };
 
-            int maHoaDon = hoaDonService.Insert(hd);
+            int maHoaDon = hoaDonService.Insert(hd, SoBanHienTai ?? 0);
             if (maHoaDon <= 0) return null;
 
             // Luu chi tiet hoa don
@@ -118,13 +124,17 @@ namespace Nha_Hang_Huit.Services
                 hoaDonService.InsertChiTiet(ct);
             }
 
+            // Cap nhat trang thai ban: DangDung
+            if (banAnService != null && SoBanHienTai.HasValue)
+                banAnService.CapNhatTrangThai(SoBanHienTai.Value, "DangDung");
+
             return maHoaDon;
         }
 
         /// <summary>
         /// Xac nhan thanh toan bang spXacNhanThanhToan
         /// </summary>
-        public bool XacNhanThanhToan(int maHoaDon, string phuongThuc, HoaDonService hoaDonService, KhachHangService khachHangService)
+        public bool XacNhanThanhToan(int maHoaDon, string phuongThuc, decimal tienKhachDua, HoaDonService hoaDonService, KhachHangService khachHangService, BanAnService banAnService = null)
         {
             try
             {
@@ -135,9 +145,13 @@ namespace Nha_Hang_Huit.Services
                 // - Ghi vao tblLichSuDiemKhachHang
                 hoaDonService.XacNhanThanhToan(
                     maHoaDon,
-                    TinhThanhTien() + TienGiamGiaHienTai, // SoTienKhachDua (goc)
+                    tienKhachDua,  // SoTienKhachDua thuc te khach dua
                     phuongThuc,
                     TiLeGiamGiaHienTai);
+
+                // Giai phong ban: set trang thai lai = Trong
+                if (banAnService != null && SoBanHienTai.HasValue)
+                    banAnService.CapNhatTrangThai(SoBanHienTai.Value, "Trong");
 
                 // Xoa gio hang
                 XoaGioHang();

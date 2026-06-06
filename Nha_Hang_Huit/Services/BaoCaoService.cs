@@ -108,7 +108,66 @@ namespace Nha_Hang_Huit.Services
         }
 
         /// <summary>
-        /// Lay top mon ban chay (su dung spDongCa result set 2 hoac spThongKeTopMonBanChay)
+        /// Lay danh sach tat ca ca da dong (de tong hop bao cao)
+        /// </summary>
+        public DataTable GetAllClosedCa()
+        {
+            string query = @"SELECT ca.MaCa, ca.ThoiGianMoCa, ca.ThoiGianDongCa,
+                    nv.HoTen AS TenNhanVien,
+                    ca.TongHoaDon, ca.TongDoanhThu, ca.TongGiamGia, ca.DoanhThuThucNhan
+                    FROM tblCa ca
+                    INNER JOIN tblNhanVien nv ON ca.MaNhanVien = nv.MaNhanVien
+                    WHERE ca.ThoiGianDongCa IS NOT NULL
+                    ORDER BY ca.ThoiGianDongCa DESC";
+            return DataService.ExecuteQuery(query);
+        }
+
+        /// <summary>
+        /// Tong hop doanh thu tu tat ca hoa don da thanh toan (khong phan biet ca)
+        /// </summary>
+        public (int TongHoaDon, decimal DoanhThu, decimal GiamGia, decimal ThucNhan) GetAggregatedReport()
+        {
+            string query = @"SELECT 
+                    COUNT(*) AS TongHoaDon,
+                    ISNULL(SUM(TongTienGoc), 0) AS TongDoanhThu,
+                    ISNULL(SUM(SoTienGiamGia), 0) AS TongGiamGia,
+                    ISNULL(SUM(TongThanhToan), 0) AS TongThucNhan
+                    FROM tblHoaDon
+                    WHERE TrangThai = N'DaThanhToan'";
+            var dt = DataService.ExecuteQuery(query);
+            if (dt.Rows.Count == 0)
+                return (0, 0, 0, 0);
+
+            var row = dt.Rows[0];
+            return (
+                Convert.ToInt32(row["TongHoaDon"]),
+                Convert.ToDecimal(row["TongDoanhThu"]),
+                Convert.ToDecimal(row["TongGiamGia"]),
+                Convert.ToDecimal(row["TongThucNhan"])
+            );
+        }
+
+        /// <summary>
+        /// Lay top mon ban chay tu tat ca cac ca da dong
+        /// </summary>
+        public DataTable GetTopMonBanChayAll()
+        {
+            string query = @"SELECT TOP 10
+                ct.TenMonAn,
+                SUM(ct.SoLuong) AS TongSoLuong,
+                SUM(ct.ThanhTien) AS TongDoanhThu
+                FROM tblChiTietHoaDon ct
+                INNER JOIN tblHoaDon hd ON ct.MaHoaDon = hd.MaHoaDon
+                INNER JOIN tblCa ca ON hd.MaCa = ca.MaCa
+                WHERE hd.TrangThai = N'DaThanhToan'
+                  AND ca.ThoiGianDongCa IS NOT NULL
+                GROUP BY ct.TenMonAn
+                ORDER BY TongSoLuong DESC";
+            return DataService.ExecuteQuery(query);
+        }
+
+        /// <summary>
+        /// Lay top mon ban chay theo ca
         /// </summary>
         public DataTable GetTopMonBanChay(int maCa)
         {
@@ -130,30 +189,6 @@ namespace Nha_Hang_Huit.Services
                     var dt = new DataTable();
                     da.Fill(dt);
                     return dt;
-                }
-            }
-        }
-
-        /// <summary>
-        /// GetTopMon tu result set 2 cua spDongCa
-        /// </summary>
-        public DataTable GetTopMonTuSpDongCa(int maCa)
-        {
-            string query = "spDongCa";
-            using (var conn = DataService.GetConnection())
-            using (var cmd = new SqlCommand(query, conn))
-            {
-                cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.AddWithValue("@MaCa", maCa);
-
-                using (var da = new SqlDataAdapter(cmd))
-                {
-                    var ds = new DataSet();
-                    da.Fill(ds);
-                    // Result set 1 = ca summary, Result set 2 = top 5
-                    if (ds.Tables.Count >= 2)
-                        return ds.Tables[1];
-                    return new DataTable();
                 }
             }
         }

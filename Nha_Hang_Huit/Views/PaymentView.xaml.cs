@@ -13,15 +13,22 @@ namespace Nha_Hang_Huit.Views
     {
         private readonly PaymentViewModel _viewModel;
 
-        public PaymentView()
+        public PaymentView() : this(null)
+        {
+        }
+
+        public PaymentView(BanAn ban = null)
         {
             InitializeComponent();
 
-            _viewModel = new PaymentViewModel();
+            _viewModel = new PaymentViewModel(ban);
             DataContext = _viewModel;
 
             _viewModel.DongYeuCau += (s, e) => this.Close();
             Loaded += (s, e) => _viewModel.Load();
+
+            if (ban != null)
+                Title = $"Thanh Toan - Ban {ban.TenBan} ({ban.TenKhuVuc})";
         }
 
         /// <summary>
@@ -29,8 +36,6 @@ namespace Nha_Hang_Huit.Views
         /// </summary>
         private void txtSoDienThoai_TextChanged(object sender, TextChangedEventArgs e)
         {
-            // ViewModel da tu dong xu ly qua PropertyChanged binding
-            // Can cap nhat visibility cho listbox goi y
             var vm = DataContext as PaymentViewModel;
             if (vm == null) return;
 

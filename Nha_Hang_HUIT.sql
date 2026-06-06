@@ -1,8 +1,5 @@
--- ================================================================
---  DATABASE : NhaHang_HaiDiLao_Mini
---  Phien ban: 1.0
--- ================================================================
-
+DROP DATABASE NhaHang_HaiDiLao_Mini;
+GO
 SET ANSI_NULLS ON;
 SET QUOTED_IDENTIFIER ON;
 GO
@@ -15,9 +12,9 @@ BEGIN
     DROP DATABASE NhaHang_HaiDiLao_Mini;
 END
 GO
-CREATE DATABASE NhaHang_HaiDiLao_Mini COLLATE Vietnamese_CI_AS;
+CREATE DATABASE NhaHangHUIT COLLATE Vietnamese_CI_AS;
 GO
-USE NhaHang_HaiDiLao_Mini;
+USE NhaHangHUIT;
 GO
 
 -- Dam bao QUOTED_IDENTIFIER ON cho computed column + index

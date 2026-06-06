@@ -20,6 +20,7 @@ namespace Nha_Hang_Huit.ViewModels
     {
         private readonly HoaDonService _hoaDonService = new HoaDonService();
         private readonly KhachHangService _khachHangService = new KhachHangService();
+        private readonly BanAnService _banAnService = new BanAnService();
         private readonly CartService _cart = CartService.Instance;
 
         // ===== THONG TIN HOA DON =====
@@ -217,10 +218,27 @@ namespace Nha_Hang_Huit.ViewModels
         public ICommand GiaLapQRCommand { get; }
         public ICommand ChonKhachHangCommand { get; }
 
+        // Thong tin ban
+        private BanAn _banHienTai;
+        public BanAn BanHienTai
+        {
+            get => _banHienTai;
+            set
+            {
+                SetProperty(ref _banHienTai, value);
+                OnPropertyChanged(nameof(BanInfoText));
+            }
+        }
+        public string BanInfoText => BanHienTai != null
+            ? $"Ban {BanHienTai.TenBan} - {BanHienTai.TenKhuVuc}"
+            : "";
+
         public event EventHandler DongYeuCau;
 
-        public PaymentViewModel()
+        public PaymentViewModel(BanAn ban = null)
         {
+            BanHienTai = ban;
+
             XacNhanTTCommand = new RelayCommand(OnXacNhanTT);
             TaoQRCommand = new RelayCommand(OnTaoQR);
             GiaLapQRCommand = new RelayCommand(_ => GiaLapThanhCong(), _ => _maHoaDonHienTai.HasValue && !_daThanhToanQR);
@@ -233,7 +251,7 @@ namespace Nha_Hang_Huit.ViewModels
         {
             CapNhatHoaDonInfo();
             HienThiChiTiet();
-            // Khoi phuc khach hang tu cart
+            // Khoi phuc khach hang tu cart (dung ApDungKhachHang de set ca ti le giam gia)
             if (_cart.MaKhachHangHienTai.HasValue)
             {
                 var kh = _khachHangService.GetById(_cart.MaKhachHangHienTai.Value);
@@ -242,7 +260,7 @@ namespace Nha_Hang_Huit.ViewModels
                     _khachHangDuocChon = kh;
                     _soDienThoaiInput = kh.SoDienThoai;
                     OnPropertyChanged(nameof(SoDienThoaiInput));
-                    HienThiThongTinKhachHang(kh);
+                    ApDungKhachHang(kh);
                 }
             }
         }
@@ -352,10 +370,10 @@ namespace Nha_Hang_Huit.ViewModels
                 return;
             }
 
-            int? maHD = _cart.TaoHoaDon(_hoaDonService);
+            int? maHD = _cart.TaoHoaDon(_hoaDonService, _banAnService);
             if (maHD == null) return;
 
-            bool result = _cart.XacNhanThanhToan(maHD.Value, "TienMat", _hoaDonService, _khachHangService);
+            bool result = _cart.XacNhanThanhToan(maHD.Value, PhuongThucThanhToan, TienKhachDua, _hoaDonService, _khachHangService, _banAnService);
             if (result)
             {
                 System.Windows.MessageBox.Show(
@@ -379,7 +397,7 @@ namespace Nha_Hang_Huit.ViewModels
             {
                 if (_maHoaDonHienTai == null)
                 {
-                    _maHoaDonHienTai = _cart.TaoHoaDon(_hoaDonService);
+                    _maHoaDonHienTai = _cart.TaoHoaDon(_hoaDonService, _banAnService);
                     if (_maHoaDonHienTai == null) return;
                 }
 
@@ -447,7 +465,8 @@ namespace Nha_Hang_Huit.ViewModels
             _daThanhToanQR = true;
             _ctsQR?.Cancel();
 
-            bool result = _cart.XacNhanThanhToan(_maHoaDonHienTai.Value, "QRCode", _hoaDonService, _khachHangService);
+            // QR thanh toan: mac dinh dung so tien hoa don (khong can nhap tien khach dua)
+            bool result = _cart.XacNhanThanhToan(_maHoaDonHienTai.Value, "QRCode", ThanhToan, _hoaDonService, _khachHangService, _banAnService);
             if (result)
             {
                 QRResultText = $"✅ Thanh toan QR thanh cong!\nHoa Don #{_maHoaDonHienTai}";

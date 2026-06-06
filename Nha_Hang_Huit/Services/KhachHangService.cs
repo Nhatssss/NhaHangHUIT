@@ -88,19 +88,19 @@ namespace Nha_Hang_Huit.Services
 
         public void CapNhatDiem(int maKhachHang, decimal tongTien)
         {
-            // Dung spDongCa + logic tich diem ben SQL stored procedure
-            // Hoac dung query cap nhat thu cong
+            // Lay ngưỡng diem dong tu tblHangThe (giong spXacNhanThanhToan)
+            // thay vi hardcode 100/500/1000
             int diemCong = (int)Math.Floor(tongTien / 10000);
 
-            string query = @"UPDATE tblKhachHang SET 
-                             TongDiemTichLuy = TongDiemTichLuy + @DiemCong,
-                             MaHang = CASE
-                                 WHEN (TongDiemTichLuy + @DiemCong) >= 1000 THEN 4  -- KimCuong
-                                 WHEN (TongDiemTichLuy + @DiemCong) >= 500  THEN 3  -- Vang
-                                 WHEN (TongDiemTichLuy + @DiemCong) >= 100  THEN 2  -- Bac
-                                 ELSE 1  -- Thuong
-                             END
-                             WHERE MaKhachHang = @MaKhachHang";
+            string query = @"UPDATE tblKhachHang SET
+                TongDiemTichLuy = TongDiemTichLuy + @DiemCong,
+                MaHang = (
+                    SELECT TOP 1 MaHang FROM tblHangThe
+                    WHERE DiemToiThieu <= (TongDiemTichLuy + @DiemCong)
+                      AND (DiemToiDa = 0 OR DiemToiDa >= (TongDiemTichLuy + @DiemCong))
+                    ORDER BY DiemToiThieu DESC
+                )
+                WHERE MaKhachHang = @MaKhachHang";
             var parameters = new SqlParameter[] {
                 new SqlParameter("@MaKhachHang", maKhachHang),
                 new SqlParameter("@DiemCong", diemCong)

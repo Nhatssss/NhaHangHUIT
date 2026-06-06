@@ -12,11 +12,12 @@ namespace Nha_Hang_Huit.ViewModels
     /// </summary>
     public class MainViewModel : BaseViewModel
     {
-        // Services
-        public MonAnService MonAnService { get; } = new MonAnService();
-        public KhachHangService KhachHangService { get; } = new KhachHangService();
-        public HoaDonService HoaDonService { get; } = new HoaDonService();
-        public BaoCaoService BaoCaoService { get; } = new BaoCaoService();
+        // Services (private readonly — ViewModel duy nhat quan ly services)
+        private readonly MonAnService _monAnService = new MonAnService();
+        private readonly KhachHangService _khachHangService = new KhachHangService();
+        private readonly HoaDonService _hoaDonService = new HoaDonService();
+        private readonly BaoCaoService _baoCaoService = new BaoCaoService();
+        private readonly BanAnService _banAnService = new BanAnService();
         public CartService Cart => CartService.Instance;
 
         // Thong tin nhan vien dang nhap
@@ -55,6 +56,9 @@ namespace Nha_Hang_Huit.ViewModels
                 OnPropertyChanged(nameof(CoTheThaoTac));
                 OnPropertyChanged(nameof(NoCaBlockedVisibility));
                 OnPropertyChanged(nameof(CaDaMoVisibility));
+                OnPropertyChanged(nameof(MoCaVisibility));
+                OnPropertyChanged(nameof(DongCaVisibility));
+                OnPropertyChanged(nameof(ChucNangSectionVisibility));
             }
         }
 
@@ -64,14 +68,67 @@ namespace Nha_Hang_Huit.ViewModels
 
         public bool CoTheMoCa => !_maCaHienTai.HasValue;
         public bool CoTheDongCa => _maCaHienTai.HasValue;
-        /// <summary>Nhan vien co the thao tac (da co ca dang mo)</summary>
-        public bool CoTheThaoTac => _maCaHienTai.HasValue && IsNhanVien;
-        /// <summary>Hien thi overlay can mo ca (nhan vien + chua mo ca)</summary>
+        public bool CoTheThaoTac => _maCaHienTai.HasValue && (IsNhanVien || IsAdmin);
+
+        // Visibility for merged sidebar sections
+        public System.Windows.Visibility MoCaVisibility =>
+            !_maCaHienTai.HasValue ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
+        public System.Windows.Visibility DongCaVisibility =>
+            _maCaHienTai.HasValue ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
+        public System.Windows.Visibility ChucNangSectionVisibility =>
+            _maCaHienTai.HasValue ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
+        public System.Windows.Visibility AdminSectionVisibility =>
+            IsAdmin ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
         public System.Windows.Visibility NoCaBlockedVisibility =>
             (IsNhanVien && !_maCaHienTai.HasValue) ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
-        /// <summary>Hien thi panel thao tac khi da mo ca</summary>
         public System.Windows.Visibility CaDaMoVisibility =>
-            (IsNhanVien && _maCaHienTai.HasValue) ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
+            (_maCaHienTai.HasValue) ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
+
+        // ==================== QUAN LY BAN ====================
+        private readonly ObservableCollection<KhuVuc> _khuVucList = new ObservableCollection<KhuVuc>();
+        public ObservableCollection<KhuVuc> KhuVucList => _khuVucList;
+
+        private KhuVuc _khuVucSelected;
+        public KhuVuc KhuVucSelected
+        {
+            get => _khuVucSelected;
+            set
+            {
+                if (SetProperty(ref _khuVucSelected, value) && value != null)
+                    TaiBanAn(value.MaKhuVuc);
+            }
+        }
+
+        private readonly ObservableCollection<BanAn> _banAnList = new ObservableCollection<BanAn>();
+        public ObservableCollection<BanAn> BanAnList => _banAnList;
+
+        // Ban dang lam viec
+        private BanAn _banHienTai;
+        public BanAn BanHienTai
+        {
+            get => _banHienTai;
+            set
+            {
+                SetProperty(ref _banHienTai, value);
+                OnPropertyChanged(nameof(BanHienTaiText));
+                OnPropertyChanged(nameof(BanHienTaiInfo));
+                OnPropertyChanged(nameof(CoChonBan));
+            }
+        }
+
+        public bool CoChonBan => BanHienTai != null;
+        public string BanHienTaiText => BanHienTai != null ? $"Ban {BanHienTai.TenBan} ({BanHienTai.TenKhuVuc})" : "(Chua chon ban)";
+        public string BanHienTaiInfo => BanHienTai != null
+            ? $"{BanHienTai.TenBan} | {BanHienTai.SoChoNgoi} cho | {BanHienTai.TrangThaiDisplay}"
+            : "";
+
+        // For counting tables by status
+        private int _soBanTrong;
+        private int _soBanDangDung;
+        private int _soBanDaDat;
+        public int SoBanTrong { get => _soBanTrong; set => SetProperty(ref _soBanTrong, value); }
+        public int SoBanDangDung { get => _soBanDangDung; set => SetProperty(ref _soBanDangDung, value); }
+        public int SoBanDaDat { get => _soBanDaDat; set => SetProperty(ref _soBanDaDat, value); }
 
         // Thong tin nhanh
         private int _tongHoaDonHomNay;
@@ -126,6 +183,21 @@ namespace Nha_Hang_Huit.ViewModels
             set => SetProperty(ref _thongBaoHienTai, value);
         }
 
+        // Visibility toggles
+        private bool _showTableLayout = true;
+        public bool ShowTableLayout
+        {
+            get => _showTableLayout;
+            set
+            {
+                SetProperty(ref _showTableLayout, value);
+                OnPropertyChanged(nameof(TableLayoutVisibility));
+                OnPropertyChanged(nameof(OrderPanelVisibility));
+            }
+        }
+        public System.Windows.Visibility TableLayoutVisibility => _showTableLayout ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
+        public System.Windows.Visibility OrderPanelVisibility => !_showTableLayout ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
+
         // Commands
         public ICommand MoCaCommand { get; }
         public ICommand DongCaCommand { get; }
@@ -133,38 +205,69 @@ namespace Nha_Hang_Huit.ViewModels
         public ICommand MoThanhToanCommand { get; }
         public ICommand MoKhachHangCommand { get; }
         public ICommand MoBaoCaoCommand { get; }
+        public ICommand MoBaoCaoAllCommand { get; }
+        public ICommand MoStaffManagementCommand { get; }
+        public ICommand MoInvoiceHistoryCommand { get; }
         public ICommand MoTopMonCommand { get; }
+        public ICommand MoTopMonAllCommand { get; }
+        public ICommand MoPhieuNhapCommand { get; }
         public ICommand XoaGioHangCommand { get; }
         public ICommand RefreshCommand { get; }
+        public ICommand DangXuatCommand { get; }
+
+        // Table commands
+        public ICommand ChonBanCommand { get; }
+        public ICommand HuyChonBanCommand { get; }
+        public ICommand GoiMonChoBanCommand { get; }
+        public ICommand ThanhToanBanCommand { get; }
 
         // Events de View xu ly mo dialog
-        public event EventHandler MoMenuTriggered;
-        public event EventHandler MoThanhToanTriggered;
         public event EventHandler MoKhachHangTriggered;
         public event EventHandler<int> MoBaoCaoTriggered;
         public event EventHandler<int> MoTopMonTriggered;
+
+        // Events cho admin xem bao cao tong hop (khong can mo ca)
+        public event EventHandler MoBaoCaoAllTriggered;
+        public event EventHandler MoTopMonAllTriggered;
+        public event EventHandler MoPhieuNhapTriggered;
+
+        // Quan ly
+        public event EventHandler MoStaffManagementTriggered;
+        public event EventHandler MoInvoiceHistoryTriggered;
+
+        // Events
+        public event EventHandler<BanAn> MoBanOrderPaymentTriggered;
+        public event EventHandler DangXuatTriggered;
 
         public MainViewModel()
         {
             MoCaCommand = new RelayCommand(OnMoCa, _ => CoTheMoCa);
             DongCaCommand = new RelayCommand(OnDongCa, _ => CoTheDongCa);
-            MoMenuCommand = new RelayCommand(_ => MoMenuTriggered?.Invoke(this, EventArgs.Empty), _ => CoTheThaoTac);
-            MoThanhToanCommand = new RelayCommand(_ => MoThanhToanTriggered?.Invoke(this, EventArgs.Empty), _ => CoTheThaoTac);
+
+            // Table selection first, then order/payment
+            MoMenuCommand = new RelayCommand(OnMoMenu, _ => CoTheThaoTac);
+            MoThanhToanCommand = new RelayCommand(OnMoThanhToan, _ => CoTheThaoTac && CoChonBan);
             MoKhachHangCommand = new RelayCommand(_ => MoKhachHangTriggered?.Invoke(this, EventArgs.Empty), _ => CoTheThaoTac);
             MoBaoCaoCommand = new RelayCommand(_ =>
             {
                 if (MaCaHienTai.HasValue)
                     MoBaoCaoTriggered?.Invoke(this, MaCaHienTai.Value);
                 else
-                    MoBaoCaoTriggered?.Invoke(this, 0);
+                    SetAutoClearMessage(msg => ThongBaoHienTai = msg, "Chua co ca nao mo! Vui long mo ca truoc.");
             });
+            MoBaoCaoAllCommand = new RelayCommand(_ => MoBaoCaoAllTriggered?.Invoke(this, EventArgs.Empty));
+            MoStaffManagementCommand = new RelayCommand(_ => MoStaffManagementTriggered?.Invoke(this, EventArgs.Empty));
+            MoInvoiceHistoryCommand = new RelayCommand(_ => MoInvoiceHistoryTriggered?.Invoke(this, EventArgs.Empty));
             MoTopMonCommand = new RelayCommand(_ =>
             {
                 if (MaCaHienTai.HasValue)
                     MoTopMonTriggered?.Invoke(this, MaCaHienTai.Value);
                 else
-                    MoTopMonTriggered?.Invoke(this, 0);
+                    SetAutoClearMessage(msg => ThongBaoHienTai = msg, "Chua co ca nao mo! Vui long mo ca truoc.");
             });
+            MoTopMonAllCommand = new RelayCommand(_ => MoTopMonAllTriggered?.Invoke(this, EventArgs.Empty));
+            MoPhieuNhapCommand = new RelayCommand(_ => MoPhieuNhapTriggered?.Invoke(this, EventArgs.Empty));
+            DangXuatCommand = new RelayCommand(_ => DangXuatTriggered?.Invoke(this, EventArgs.Empty));
             XoaGioHangCommand = new RelayCommand(_ =>
             {
                 Cart.XoaGioHang();
@@ -174,23 +277,84 @@ namespace Nha_Hang_Huit.ViewModels
             {
                 CapNhatThongTin();
                 HienThiGioHang();
-                ThongBaoHienTai = "Da cap nhat thong tin!";
+                LoadTableData();
+                SetAutoClearMessage(msg => ThongBaoHienTai = msg, "Da cap nhat thong tin!");
             });
+
+            // Table commands
+            ChonBanCommand = new RelayCommand<BanAn>(OnChonBan);
+            HuyChonBanCommand = new RelayCommand(_ =>
+            {
+                BanHienTai = null;
+                Cart.SoBanHienTai = null;
+                Cart.TenBanHienTai = null;
+            });
+            GoiMonChoBanCommand = new RelayCommand(_ => MoBanOrderPaymentTriggered?.Invoke(this, BanHienTai), _ => CoChonBan && CoTheThaoTac);
+            ThanhToanBanCommand = new RelayCommand(_ => MoBanOrderPaymentTriggered?.Invoke(this, BanHienTai), _ => CoChonBan && CoTheThaoTac);
 
             Cart.GioHangChanged += (s, e) => HienThiGioHang();
         }
 
         public void KhoiTao()
         {
-            MaCaHienTai = HoaDonService.GetCurrentCa();
+            MaCaHienTai = _hoaDonService.GetCurrentCa();
             CapNhatThongTin();
             HienThiGioHang();
             if (IsAdmin)
+            {
                 ThongBaoHienTai = "Chao mung Quan Ly! Xem bao cao va doanh so ben duoi.";
+            }
             else if (!MaCaHienTai.HasValue)
+            {
                 ThongBaoHienTai = "Vui long mo ca de bat dau thao tac!";
+            }
             else
-                ThongBaoHienTai = "Da mo ca - Chon chuc nang de thao tac.";
+            {
+                LoadTableData();
+                ThongBaoHienTai = "Da mo ca - Chon ban de bat dau goi mon.";
+            }
+        }
+
+        /// <summary>
+        /// Load danh sach khu vuc + ban an
+        /// </summary>
+        public void LoadTableData()
+        {
+            if (!MaCaHienTai.HasValue) return;
+
+            // Save selected area
+            string selectedTenKv = _khuVucSelected?.TenKhuVuc;
+
+            _khuVucList.Clear();
+            var kvs = _banAnService.GetAllKhuVuc();
+            foreach (var kv in kvs)
+                _khuVucList.Add(kv);
+
+            // Restore selection or pick first
+            if (!string.IsNullOrEmpty(selectedTenKv))
+            {
+                var found = _khuVucList.FirstOrDefault(k => k.TenKhuVuc == selectedTenKv);
+                if (found != null) KhuVucSelected = found;
+                else if (_khuVucList.Count > 0) KhuVucSelected = _khuVucList[0];
+            }
+            else if (_khuVucList.Count > 0)
+            {
+                KhuVucSelected = _khuVucList[0];
+            }
+        }
+
+        private void TaiBanAn(int maKhuVuc)
+        {
+            _banAnList.Clear();
+            var bans = _banAnService.GetBanAnByKhuVuc(maKhuVuc);
+            // Sort by hang, cot for grid layout
+            bans = bans.OrderBy(b => b.Hang).ThenBy(b => b.Cot).ToList();
+            foreach (var b in bans)
+                _banAnList.Add(b);
+
+            SoBanTrong = bans.Count(b => b.IsTrong);
+            SoBanDangDung = bans.Count(b => b.IsDangDung);
+            SoBanDaDat = bans.Count(b => b.IsDaDat);
         }
 
         public void CapNhatThongTin()
@@ -202,7 +366,7 @@ namespace Nha_Hang_Huit.ViewModels
                 return;
             }
 
-            var hoaDons = HoaDonService.GetDaThanhToanByCa(MaCaHienTai.Value);
+            var hoaDons = _hoaDonService.GetDaThanhToanByCa(MaCaHienTai.Value);
             TongHoaDonHomNay = hoaDons.Count;
             DoanhThuHomNay = hoaDons.Sum(h => h.ThanhTien);
         }
@@ -218,7 +382,7 @@ namespace Nha_Hang_Huit.ViewModels
 
             if (Cart.MaKhachHangHienTai.HasValue)
             {
-                var kh = KhachHangService.GetById(Cart.MaKhachHangHienTai.Value);
+                var kh = _khachHangService.GetById(Cart.MaKhachHangHienTai.Value);
                 KhachHangInfo = kh != null ? $"{kh.TenKhachHang} ({kh.HangThe})" : "(Chua chon)";
             }
             else
@@ -230,16 +394,53 @@ namespace Nha_Hang_Huit.ViewModels
             OnPropertyChanged(nameof(TongHoaDonText));
         }
 
+        private void OnChonBan(BanAn ban)
+        {
+            if (ban == null) return;
+
+            BanHienTai = ban;
+            Cart.SoBanHienTai = ban.MaBan;
+            Cart.TenBanHienTai = ban.TenBan;
+
+            if (ban.IsTrong)
+            {
+                // Empty table → start new order + payment combined
+                Cart.XoaGioHang();
+            }
+            
+            // Mo combined view: order + payment cung luc
+            MoBanOrderPaymentTriggered?.Invoke(this, ban);
+        }
+
+        private void OnMoMenu(object obj)
+        {
+            if (!CoTheThaoTac) return;
+
+            if (!CoChonBan)
+            {
+                SetAutoClearMessage(msg => ThongBaoHienTai = msg, "Vui long chon ban truoc khi goi mon!");
+                return;
+            }
+            MoBanOrderPaymentTriggered?.Invoke(this, BanHienTai);
+        }
+
+        private void OnMoThanhToan(object obj)
+        {
+            if (!CoTheThaoTac || !CoChonBan) return;
+            MoBanOrderPaymentTriggered?.Invoke(this, BanHienTai);
+        }
+
         private void OnMoCa(object obj)
         {
             int maNv = _nhanVienHienTai?.MaNhanVien ?? 1;
-            int maCa = BaoCaoService.MoCa(maNv);
+            int maCa = _baoCaoService.MoCa(maNv);
             if (maCa > 0)
             {
                 MaCaHienTai = maCa;
                 CapNhatThongTin();
-                ThongBaoHienTai = $"Da mo ca #{maCa} thanh cong!";
-                // Refresh command can-execute for all operations
+                LoadTableData();
+                SetAutoClearMessage(msg => ThongBaoHienTai = msg, $"Da mo ca #{maCa} thanh cong! Chon ban de bat dau.");
+                ShowTableLayout = true;
                 CommandManager.InvalidateRequerySuggested();
             }
         }
@@ -248,7 +449,7 @@ namespace Nha_Hang_Huit.ViewModels
         {
             if (!MaCaHienTai.HasValue) return;
 
-            var ca = BaoCaoService.DongCa(MaCaHienTai.Value);
+            var ca = _baoCaoService.DongCa(MaCaHienTai.Value);
             if (ca != null)
             {
                 MoBaoCaoTriggered?.Invoke(this, MaCaHienTai.Value);
@@ -256,9 +457,14 @@ namespace Nha_Hang_Huit.ViewModels
                 CapNhatThongTin();
                 Cart.XoaGioHang();
                 HienThiGioHang();
-                ThongBaoHienTai = "Da dong ca thanh cong!";
+                BanHienTai = null;
+                _khuVucList.Clear();
+                _banAnList.Clear();
+                SetAutoClearMessage(msg => ThongBaoHienTai = msg, "Da dong ca thanh cong!");
                 CommandManager.InvalidateRequerySuggested();
             }
         }
+
+
     }
 }

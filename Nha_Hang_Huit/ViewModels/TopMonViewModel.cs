@@ -79,6 +79,14 @@ namespace Nha_Hang_Huit.ViewModels
 
         private void OnXuatBaoCao(object obj)
         {
+            var caInfo = _baoCaoService.GetCaInfo(_maCa);
+            if (caInfo == null)
+            {
+                System.Windows.MessageBox.Show("Khong the xuat bao cao vi thong tin ca khong hop le!", "Loi",
+                    System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+                return;
+            }
+
             var dialog = new SaveFileDialog
             {
                 Title = "Luu bao cao top mon ban chay",
@@ -88,7 +96,6 @@ namespace Nha_Hang_Huit.ViewModels
 
             if (dialog.ShowDialog() == true)
             {
-                var caInfo = _baoCaoService.GetCaInfo(_maCa);
                 bool result = _baoCaoService.XuatBaoCaoTxt(caInfo, _topMonData, dialog.FileName);
                 if (result)
                 {
@@ -98,13 +105,5 @@ namespace Nha_Hang_Huit.ViewModels
             }
         }
 
-        public class TopMonItem
-        {
-            public int STT { get; set; }
-            public string TenMonAn { get; set; }
-            public int SoLuong { get; set; }
-            public decimal DoanhThu { get; set; }
-            public string DoanhThuText => $"{DoanhThu:N0} VND";
-        }
     }
 }

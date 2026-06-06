@@ -27,9 +27,9 @@ namespace Nha_Hang_Huit.Models
         {
             switch (hangThe?.Trim().ToLowerInvariant())
             {
-                case "kim cuong": return 0.15;
-                case "vang": return 0.10;
-                case "bac": return 0.05;
+                case "kim cuong": return 0.10;   // DB: TyLeGiamGia = 10.00
+                case "vang": return 0.05;         // DB: TyLeGiamGia = 5.00
+                case "bac": return 0.03;          // DB: TyLeGiamGia = 3.00
                 case "thuong":
                 default: return 0.0;
             }

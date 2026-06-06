@@ -7,9 +7,9 @@
 --    DROP DATABASE NhaHang_HaiDiLao_Mini;
 --END
 GO
-CREATE DATABASE Nha_Hang_Hiut  COLLATE Vietnamese_CI_AS;
+CREATE DATABASE NhaHang_HaiDiLao_Mini  COLLATE Vietnamese_CI_AS;
 GO
-USE Nha_Hang_Huit;
+USE NhaHang_HaiDiLao_Mini;
 GO
 
 -- ================================================================
@@ -52,6 +52,30 @@ CREATE TABLE tblHangThe (
     MoTa            NVARCHAR(255) NULL,
     MauHienThi      NVARCHAR(20)  NULL DEFAULT '#808080',
     CONSTRAINT PK_tblHangThe PRIMARY KEY (MaHang)
+);
+GO
+
+-- tblKhuVuc: Khu vuc trong nha hang (Tang 1, Tang 2, San Vuon...)
+CREATE TABLE tblKhuVuc (
+    MaKhuVuc        INT           NOT NULL IDENTITY(1,1),
+    TenKhuVuc       NVARCHAR(50)  NOT NULL,
+    MoTa            NVARCHAR(255) NULL,
+    ThuTuHienThi    INT           NOT NULL DEFAULT 0,
+    CONSTRAINT PK_tblKhuVuc PRIMARY KEY (MaKhuVuc)
+);
+GO
+
+-- tblBanAn: Thong tin ban an
+CREATE TABLE tblBanAn (
+    MaBan           INT           NOT NULL IDENTITY(1,1),
+    TenBan          NVARCHAR(20)  NOT NULL,
+    MaKhuVuc        INT           NOT NULL,
+    SoChoNgoi       INT           NOT NULL DEFAULT 4,
+    TrangThai       NVARCHAR(20)  NOT NULL DEFAULT N'Trong',  -- Trong | DangDung | DaDat
+    Cot             INT           NOT NULL DEFAULT 0,
+    Hang            INT           NOT NULL DEFAULT 0,
+    CONSTRAINT PK_tblBanAn   PRIMARY KEY (MaBan),
+    CONSTRAINT FK_BanAn_KhuVuc FOREIGN KEY (MaKhuVuc) REFERENCES tblKhuVuc(MaKhuVuc)
 );
 GO
 
@@ -177,6 +201,27 @@ INSERT INTO tblHangThe (TenHang, DiemToiThieu, DiemToiDa, TyLeGiamGia, MoTa, Mau
 ('Kim Cuong', 1000, 0,   10.00, N'Tu 1000 diem - Giam 10%',         '#00BFFF');
 GO
 
+INSERT INTO tblKhuVuc (TenKhuVuc, MoTa, ThuTuHienThi) VALUES
+(N'Tang 1',     N'Trong nha, may lanh', 1),
+(N'Tang 2',     N'Tren tang, thoang mat', 2),
+(N'San Vuon',   N'Ngoai troi, view dep', 3);
+GO
+
+INSERT INTO tblBanAn (TenBan, MaKhuVuc, SoChoNgoi, TrangThai, Cot, Hang) VALUES
+-- Tang 1 (MaKhuVuc=1): 3x4 = 12 ban
+(N'B01', 1, 4, N'Trong', 0,0), (N'B02', 1, 4, N'Trong', 1,0), (N'B03', 1, 4, N'Trong', 2,0),
+(N'B04', 1, 4, N'Trong', 0,1), (N'B05', 1, 6, N'Trong', 1,1), (N'B06', 1, 6, N'Trong', 2,1),
+(N'B07', 1, 4, N'Trong', 0,2), (N'B08', 1, 4, N'Trong', 1,2), (N'B09', 1, 4, N'Trong', 2,2),
+(N'B10', 1, 2, N'Trong', 0,3), (N'B11', 1, 2, N'Trong', 1,3), (N'B12', 1, 8, N'Trong', 2,3),
+-- Tang 2 (MaKhuVuc=2): 2x3 = 6 ban
+(N'C01', 2, 4, N'Trong', 0,0), (N'C02', 2, 6, N'Trong', 1,0),
+(N'C03', 2, 4, N'Trong', 0,1), (N'C04', 2, 6, N'Trong', 1,1),
+(N'C05', 2, 4, N'Trong', 0,2), (N'C06', 2, 8, N'Trong', 1,2),
+-- San Vuon (MaKhuVuc=3): 2x2 = 4 ban
+(N'V01', 3, 6, N'Trong', 0,0), (N'V02', 3, 4, N'Trong', 1,0),
+(N'V03', 3, 6, N'Trong', 0,1), (N'V04', 3, 8, N'Trong', 1,1);
+GO
+
 INSERT INTO tblNhomMonAn (TenNhom, MoTaNhom, ThuTuHienThi) VALUES
 (N'Lo Nuong',   N'Cac loai lo lau dac trung cua Haidilao', 1),
 (N'Thit Bo',    N'Thit bo cao cap nhuong va nhung lau',    2),
@@ -242,11 +287,13 @@ INSERT INTO tblMonAn (MaNhom, TenMonAn, GiaBan, DonVi, MoTa) VALUES
 (8, N'Bia Tiger Lon 330ml',   45000,  N'Lon', N'Bia Tiger 330ml uop lanh, thuong thuc bua an');
 GO
 
--- Nhan Vien mac dinh (mat khau test: 123456)
+-- Nhan Vien mac dinh (mat khau duoc hash SHA256, plaintext: 123456)
 INSERT INTO tblNhanVien (HoTen, TaiKhoan, MatKhau, ChucVu) VALUES
-(N'Nguyen Van An',  'admin',   '123456', N'Quan Ly'),
-(N'Tran Thi Bich',  'bich01',  '123456', N'Thu Ngan'),
-(N'Le Minh Cuong',  'cuong02', '123456', N'Phuc Vu');
+(N'Nguyen Van An',  'admin',   '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92', N'Quan Ly'),
+(N'Tran Thi Bich',  'bich01',  '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92', N'Thu Ngan'),
+(N'Le Minh Cuong',  'cuong02', '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92', N'Phuc Vu'),
+(N'Nguyen Van Binh','nv01',    '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92', N'Phuc Vu'),
+(N'Le Thi Dao',     'nv02',    '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92', N'Phuc Vu');
 GO
 
 -- Khach Hang mau (test cac hang the)
@@ -262,6 +309,7 @@ GO
 -- ================================================================
 
 -- spDangNhapNhanVien
+-- So sanh mat khau da hash (C# gui xuong duoi dang SHA256 hex)
 CREATE PROCEDURE spDangNhapNhanVien
     @TaiKhoan VARCHAR(50), @MatKhau VARCHAR(100)
 AS
@@ -364,6 +412,11 @@ BEGIN
     ELSE
         INSERT INTO tblChiTietHoaDon (MaHoaDon, MaMonAn, TenMonAn, DonGia, SoLuong, GhiChu)
         VALUES (@MaHoaDon, @MaMonAn, @TenMonAn, @DonGia, @SoLuong, @GhiChu);
+
+    -- Return MaChiTiet (identity from INSERT, or existing from UPDATE)
+    SELECT SCOPE_IDENTITY() AS MaChiTiet;
+    IF @@ROWCOUNT = 0
+        SELECT MaChiTiet FROM tblChiTietHoaDon WHERE MaHoaDon = @MaHoaDon AND MaMonAn = @MaMonAn;
 END
 GO
 

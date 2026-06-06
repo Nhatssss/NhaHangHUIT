@@ -166,6 +166,7 @@ namespace Nha_Hang_Huit.ViewModels
             if (KhTimDuoc == null) return;
 
             _cart.MaKhachHangHienTai = KhTimDuoc.MaKhachHang;
+            _cart.TiLeGiamGiaHienTai = (decimal)KhTimDuoc.LayTiLeGiamGia();
             decimal tongTien = _cart.TinhTongTien();
             decimal tienGiam = _khachHangService.TinhTienGiamGia(KhTimDuoc, tongTien);
             _cart.TienGiamGiaHienTai = tienGiam;

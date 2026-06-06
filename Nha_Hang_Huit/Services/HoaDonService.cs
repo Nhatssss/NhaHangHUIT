@@ -56,6 +56,23 @@ namespace Nha_Hang_Huit.Services
         }
 
         /// <summary>
+        /// Lay tat ca hoa don da thanh toan (khong phan biet ca)
+        /// </summary>
+        public List<HoaDon> GetAllDaThanhToan()
+        {
+            var list = new List<HoaDon>();
+            string query = @"SELECT hd.*, kh.TenKhachHang, kh.SoDienThoai
+                             FROM tblHoaDon hd
+                             LEFT JOIN tblKhachHang kh ON hd.MaKhachHang = kh.MaKhachHang
+                             WHERE hd.TrangThai = N'DaThanhToan'
+                             ORDER BY hd.ThoiGianTao DESC";
+            DataTable dt = DataService.ExecuteQuery(query);
+            foreach (DataRow row in dt.Rows)
+                list.Add(MapRowToHoaDon(row));
+            return list;
+        }
+
+        /// <summary>
         /// Lay hoa don chua thanh toan cua ca hien tai
         /// </summary>
         public List<HoaDon> GetChuaThanhToanByCa(int maCa)
@@ -79,6 +96,11 @@ namespace Nha_Hang_Huit.Services
         /// </summary>
         public int Insert(HoaDon hd)
         {
+            return Insert(hd, 0);
+        }
+
+        public int Insert(HoaDon hd, int soBan)
+        {
             string query = "spTaoHoaDonMoi";
             using (var conn = DataService.GetConnection())
             using (var cmd = new SqlCommand(query, conn))
@@ -86,7 +108,7 @@ namespace Nha_Hang_Huit.Services
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.AddWithValue("@MaCa", hd.MaCa ?? 0);
                 cmd.Parameters.AddWithValue("@MaKhachHang", (object)hd.MaKhachHang ?? DBNull.Value);
-                cmd.Parameters.AddWithValue("@SoBan", 0);
+                cmd.Parameters.AddWithValue("@SoBan", soBan);
 
                 var maHdParam = cmd.Parameters.Add("@MaHoaDonMoi", SqlDbType.Int);
                 maHdParam.Direction = ParameterDirection.Output;
@@ -104,12 +126,18 @@ namespace Nha_Hang_Huit.Services
         /// </summary>
         public int InsertDirect(HoaDon hd)
         {
+            return InsertDirect(hd, 0);
+        }
+
+        public int InsertDirect(HoaDon hd, int soBan)
+        {
             string query = @"INSERT INTO tblHoaDon (MaCa, MaKhachHang, SoBan, ThoiGianTao, TrangThai)
-                             VALUES (@MaCa, @MaKhachHang, 0, GETDATE(), N'ChuaTT');
+                             VALUES (@MaCa, @MaKhachHang, @SoBan, GETDATE(), N'ChuaTT');
                              SELECT SCOPE_IDENTITY();";
             var parameters = new SqlParameter[] {
                 new SqlParameter("@MaCa", hd.MaCa ?? 0),
-                new SqlParameter("@MaKhachHang", (object)hd.MaKhachHang ?? DBNull.Value)
+                new SqlParameter("@MaKhachHang", (object)hd.MaKhachHang ?? DBNull.Value),
+                new SqlParameter("@SoBan", soBan)
             };
             return Convert.ToInt32(DataService.ExecuteScalar(query, parameters));
         }
@@ -156,6 +184,24 @@ namespace Nha_Hang_Huit.Services
                 new SqlParameter("@HinhThucTT", (object)phuongThucThanhToan ?? DBNull.Value)
             };
             return DataService.ExecuteNonQuery(query, parameters);
+        }
+
+        /// <summary>
+        /// Lay hoa don chua thanh toan theo so ban
+        /// </summary>
+        public List<HoaDon> GetChuaThanhToanByBan(int soBan)
+        {
+            var list = new List<HoaDon>();
+            string query = @"SELECT hd.*, kh.TenKhachHang, kh.SoDienThoai
+                             FROM tblHoaDon hd
+                             LEFT JOIN tblKhachHang kh ON hd.MaKhachHang = kh.MaKhachHang
+                             WHERE hd.SoBan = @SoBan AND hd.TrangThai = N'ChuaTT'
+                             ORDER BY hd.ThoiGianTao";
+            var parameters = new SqlParameter[] { new SqlParameter("@SoBan", soBan) };
+            DataTable dt = DataService.ExecuteQuery(query, parameters);
+            foreach (DataRow row in dt.Rows)
+                list.Add(MapRowToHoaDon(row));
+            return list;
         }
 
         /// <summary>
@@ -259,7 +305,7 @@ namespace Nha_Hang_Huit.Services
                 PhuongThucThanhToan = row["HinhThucTT"] != DBNull.Value ? row["HinhThucTT"].ToString() : null,
                 TrangThai = row["TrangThai"].ToString(),
                 MaCa = Convert.ToInt32(row["MaCa"]),
-                GhiChu = row["GhiChu"] != DBNull.Value ? row["GhiChu"].ToString() : null
+                // GhiChu = khong co trong DB
             };
         }
 

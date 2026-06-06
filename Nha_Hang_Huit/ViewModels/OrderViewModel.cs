@@ -15,6 +15,22 @@ namespace Nha_Hang_Huit.ViewModels
         private readonly MonAnService _monAnService = new MonAnService();
         private readonly CartService _cart = CartService.Instance;
 
+        // Thong tin ban hien tai
+        private BanAn _banHienTai;
+        public BanAn BanHienTai
+        {
+            get => _banHienTai;
+            set
+            {
+                SetProperty(ref _banHienTai, value);
+                OnPropertyChanged(nameof(BanTitleText));
+            }
+        }
+
+        public string BanTitleText => BanHienTai != null
+            ? $"Ban {BanHienTai.TenBan} - {BanHienTai.TenKhuVuc}"
+            : "Goi mon";
+
         // Danh sach nhom mon
         public ObservableCollection<string> NhomMonList { get; } = new ObservableCollection<string>();
 
@@ -78,8 +94,10 @@ namespace Nha_Hang_Huit.ViewModels
 
         public event EventHandler DongYeuCau;
 
-        public OrderViewModel()
+        public OrderViewModel(BanAn ban = null)
         {
+            BanHienTai = ban;
+
             TangSLCommand = new RelayCommand(_ => SoLuong = Math.Min(SoLuong + 1, 99));
             GiamSLCommand = new RelayCommand(_ => SoLuong = Math.Max(SoLuong - 1, 1));
             ThemVaoGioCommand = new RelayCommand(OnThemVaoGio, _ => MonDaChon != null);
